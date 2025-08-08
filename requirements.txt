@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 numpy
 pandas
 tensorflow
 scikit-learn
 firebase-admin
+=======
+numpy
+pandas
+tensorflow
+scikit-learn
+firebase-admin
+>>>>>>> fe7e2936bef272684eed6f28439b497e4db530f4
