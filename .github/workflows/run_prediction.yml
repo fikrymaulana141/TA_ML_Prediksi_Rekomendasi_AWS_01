@@ -31,7 +31,7 @@ jobs:
 
     # 4. Membuat file kredensial Firebase dari Secret (Metode Base64)
     - name: Decode and create Firebase credentials file
-      run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" | base64 --decode > firebase-credentials.json
+      run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" | base64 --decode > firebase_credentials.json
 
     - name: Verify file creation
       run: ls -la
