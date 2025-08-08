@@ -33,6 +33,9 @@ jobs:
     - name: Decode and create Firebase credentials file
       run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" | base64 --decode > firebase-credentials.json
 
+    - name: Verify file creation
+      run: ls -la
+
     # 5. Menjalankan skrip utama Python Anda
     - name: Run prediction script
       run: python Prediksi_Cuaca_Rekomendasi_Penyiraman.py
