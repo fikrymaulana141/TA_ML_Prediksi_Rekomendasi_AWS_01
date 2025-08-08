@@ -9,6 +9,7 @@ import joblib
 import firebase_admin
 from firebase_admin import credentials, db
 from datetime import datetime
+from zoneinfo import ZoneInfo # <-- PERUBAHAN 1: Import ZoneInfo
 
 # ===================================================================
 # BAGIAN 2: FUNGSI-FUNGSI (DEFINISI)
@@ -70,8 +71,6 @@ def jalankan_program():
     try:
         # --- Inisialisasi Firebase dan Muat Model ---
         print("🚀 Memulai proses...")
-        # --- PERUBAHAN DI SINI ---
-        # Menggunakan nama file generik yang akan dibuat oleh GitHub Actions
         cred = credentials.Certificate("firebase_credentials.json")
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
@@ -102,30 +101,26 @@ def jalankan_program():
         suhu_data = data_mentah.get('suhu', {})
         angin_data = data_mentah.get('angin', {})
         hujan_data = data_mentah.get('hujan', {})
-
-        # === BLOK KONVERSI UNTUK DATA SS ===
         cahaya_data = data_mentah.get('cahaya', {})
         intensitas_cahaya = float(cahaya_data.get('avg', 0.0))
 
-        # Aturan konversi dari intensitas cahaya ke asumsi durasi jam
         if intensitas_cahaya > 20000:
-            nilai_ss_konversi = 8.0  # Asumsi sangat cerah
+            nilai_ss_konversi = 8.0
         elif intensitas_cahaya > 5000:
-            nilai_ss_konversi = 5.0  # Asumsi cerah
+            nilai_ss_konversi = 5.0
         elif intensitas_cahaya > 1000:
-            nilai_ss_konversi = 2.0  # Asumsi berawan
+            nilai_ss_konversi = 2.0
         else:
-            nilai_ss_konversi = 0.5  # Asumsi sangat mendung/gelap
+            nilai_ss_konversi = 0.5
 
         print(f"[INFO] Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}")
-        # === AKHIR BLOK KONVERSI ===
 
         data_input_model = {
             'TN': float(suhu_data.get('min', 0.0)),
             'TX': float(suhu_data.get('max', 0.0)),
             'RR': float(hujan_data.get('total_harian_mm', 0.0)),
             'FF_X': float(angin_data.get('gust_kmh', 0.0)) * 0.54,
-            'SS': nilai_ss_konversi # <-- Menggunakan nilai hasil konversi
+            'SS': nilai_ss_konversi
         }
 
         print("\n[INFO] Data yang dimasukkan ke model (setelah pemetaan):")
@@ -134,7 +129,9 @@ def jalankan_program():
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
 
-        timestamp_key = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        # <-- PERUBAHAN 2: Membuat timestamp sesuai zona waktu Asia/Jakarta (WIB)
+        timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
+        
         path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman/{timestamp_key}'
 
         kecepatan_angin_kmh_untuk_disimpan = prediksi_numerik['FF_AVG_KNOT'] * 1.852
@@ -173,4 +170,4 @@ def jalankan_program():
 
 if __name__ == "__main__":
     jalankan_program()
-    print("\n🏁 Program selesai.")
+    print("\n Program selesai.")
