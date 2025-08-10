@@ -9,13 +9,13 @@ import joblib
 import firebase_admin
 from firebase_admin import credentials, db
 from datetime import datetime
-from zoneinfo import ZoneInfo # <-- PERUBAHAN 1: Import ZoneInfo
+from zoneinfo import ZoneInfo
 
 # ===================================================================
 # BAGIAN 2: FUNGSI-FUNGSI (DEFINISI)
 # ===================================================================
 
-# Fungsi 1: Melakukan Prediksi Cuaca
+# Fungsi 1: Melakukan Prediksi Cuaca (Tidak ada perubahan)
 def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
     features = ['TN', 'TX', 'RR', 'SS', 'FF_X']
     df_input = pd.DataFrame([data_realtime], columns=features)
@@ -30,8 +30,10 @@ def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
     }
     return hasil_numerik
 
-# Fungsi 2: Memberikan Rekomendasi Penyiraman
+# --- FUNGSI INI TELAH DISESUAIKAN ---
+# Fungsi 2: Memberikan Rekomendasi Penyiraman dengan Logika Baru
 def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
+    """Memberikan rekomendasi penyiraman berdasarkan parameter ideal Sacha Inchi."""
     skor = 0
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
@@ -39,31 +41,55 @@ def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     curah_hujan = float(input_cuaca['RR'])
     kecepatan_angin_kmh = kecepatan_angin_knot * 1.852
 
-    if suhu > 30: skor += 3
-    elif suhu >= 25: skor += 2
-    else: skor += 1
+    # Logika Skoring Suhu (Ideal ~25°C)
+    if suhu >= 32:
+        skor += 3  # Sangat Panas
+    elif suhu >= 28:
+        skor += 2  # Panas
+    elif suhu >= 24:
+        skor += 1  # Hangat/Ideal
+    else:
+        skor += 0  # Sejuk
 
-    if kelembapan < 65: skor += 3
-    elif kelembapan <= 80: skor += 2
-    else: skor += 1
+    # Logika Skoring Kelembapan (Ideal ~70%)
+    if kelembapan < 60:
+        skor += 3  # Sangat Kering
+    elif kelembapan < 70:
+        skor += 2  # Kering
+    elif kelembapan <= 85:
+        skor += 1  # Lembap/Ideal
+    else:
+        skor += 0  # Sangat Lembap
+        
+    # Logika Skoring Kecepatan Angin (Faktor Penguapan)
+    if kecepatan_angin_kmh > 20:
+        skor += 3  # Sangat Berangin
+    elif kecepatan_angin_kmh >= 10:
+        skor += 2  # Berangin
+    else:
+        skor += 1  # Tenang
 
-    if kecepatan_angin_kmh > 20: skor += 3
-    elif kecepatan_angin_kmh >= 10: skor += 2
-    else: skor += 1
+    # Logika Pengurangan Skor oleh Curah Hujan
+    if curah_hujan > 5:
+        skor -= 10  # Hujan Lebat, penyiraman hampir pasti tidak perlu
+    elif curah_hujan >= 1:
+        skor -= 5   # Hujan Ringan, kebutuhan penyiraman berkurang drastis
 
-    if curah_hujan > 5: skor -= 10
-    elif curah_hujan >= 1: skor -= 5
-
-    if skor <= 0: rekomendasi = "Tidak Perlu Penyiraman"
-    elif skor <= 4: rekomendasi = "Penyiraman Ringan"
-    elif skor <= 7: rekomendasi = "Penyiraman Sedang"
-    else: rekomendasi = "Penyiraman Intensif"
+    # Penentuan Rekomendasi Berdasarkan Skor Akhir
+    if skor <= 2:
+        rekomendasi = "Tidak Perlu Penyiraman"
+    elif skor <= 5:
+        rekomendasi = "Penyiraman Ringan"
+    elif skor <= 7:
+        rekomendasi = "Penyiraman Sedang"
+    else: # skor > 7
+        rekomendasi = "Penyiraman Intensif"
 
     detail = f"Total Skor: {skor}"
     return rekomendasi, detail
 
 # ===================================================================
-# BAGIAN 3: BLOK EKSEKUSI UTAMA
+# BAGIAN 3: BLOK EKSEKUSI UTAMA (Tidak ada perubahan)
 # ===================================================================
 
 def jalankan_program():
@@ -128,10 +154,8 @@ def jalankan_program():
 
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
-
-        # <-- PERUBAHAN 2: Membuat timestamp sesuai zona waktu Asia/Jakarta (WIB)
-        timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
         
+        timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
         path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman/{timestamp_key}'
 
         kecepatan_angin_kmh_untuk_disimpan = prediksi_numerik['FF_AVG_KNOT'] * 1.852
@@ -170,4 +194,4 @@ def jalankan_program():
 
 if __name__ == "__main__":
     jalankan_program()
-    print("\n Program selesai.")
+    print("\n🏁 Program selesai.")
