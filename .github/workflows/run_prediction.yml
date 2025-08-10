@@ -1,9 +1,9 @@
 name: Prediksi Cuaca dan Rekomendasi Penyiraman
 
 on:
-  # Berjalan setiap 3 jam sekali. Ganti jika perlu.
+  # --- PERUBAHAN DI BARIS INI ---
   schedule:
-    - cron: '0 */3 * * *'
+    - cron: '15 0,3,6,9,12,15,18,21 * * *'
   
   # Mengizinkan Anda menjalankan workflow secara manual dari tab Actions
   workflow_dispatch:
@@ -32,9 +32,6 @@ jobs:
     # 4. Membuat file kredensial Firebase dari Secret (Metode Base64)
     - name: Decode and create Firebase credentials file
       run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" | base64 --decode > firebase_credentials.json
-
-    - name: Verify file creation
-      run: ls -la
 
     # 5. Menjalankan skrip utama Python Anda
     - name: Run prediction script
