@@ -120,7 +120,7 @@ try:
     print("--- Memulai Proses Prediksi, Rekomendasi, dan Klasifikasi ---")
     DATABASE_URL = 'https://tugas-akhir-64cd9-default-rtdb.asia-southeast1.firebasedatabase.app/'
     
-    cred = credentials.Certificate("serviceAccountKey.json")
+    cred = credentials.Certificate("firebase_credentials.json")
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred, {'databaseURL': DATABASE_URL})
     print("✅ Berhasil terhubung ke Firebase.")
