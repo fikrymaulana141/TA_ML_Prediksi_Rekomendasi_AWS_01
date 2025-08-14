@@ -13,8 +13,8 @@ from zoneinfo import ZoneInfo
 # BAGIAN 2: FUNGSI-FUNGSI (DEFINISI)
 # ===================================================================
 
-# Fungsi 1: Melakukan Prediksi Cuaca (Tidak ada perubahan)
 def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
+    """Menjalankan prediksi cuaca menggunakan model yang telah dilatih."""
     features = ['TN', 'TX', 'RR', 'SS', 'FF_X']
     df_input = pd.DataFrame([data_realtime], columns=features)
     input_scaled = scaler_X.transform(df_input)
@@ -28,9 +28,8 @@ def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
     }
     return hasil_numerik
 
-# Fungsi 2: Memberikan Rekomendasi Penyiraman (Tidak ada perubahan)
 def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
-    # (Isi fungsi ini tidak diubah)
+    """Memberikan rekomendasi penyiraman berdasarkan parameter ideal Sacha Inchi."""
     skor = 0
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
@@ -57,8 +56,8 @@ def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     detail = f"Total Skor: {skor}"
     return rekomendasi, detail
 
-# Fungsi 3: Memberikan Klasifikasi Cuaca (Tidak ada perubahan)
 def get_klasifikasi_cuaca(prediksi_numerik, input_cuaca):
+    """Memberikan klasifikasi cuaca berdasarkan prioritas: Hujan > Suhu/Kelembapan + Angin."""
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
     kecepatan_angin_knot = prediksi_numerik['FF_AVG_KNOT']
@@ -77,28 +76,17 @@ def get_klasifikasi_cuaca(prediksi_numerik, input_cuaca):
     if kecepatan_angin_kmh >= 20: return f"{klasifikasi_utama} & Berangin"
     else: return klasifikasi_utama
 
-## --- FUNGSI ARAH ANGIN (DIKEMBALIKAN) ---
-# Fungsi 4: Mengonversi Derajat ke Arah Mata Angin
 def konversi_derajat_ke_arah_angin(derajat):
     """Mengubah derajat arah angin menjadi 8 arah mata angin."""
-    if 337.5 <= derajat <= 360 or 0 <= derajat < 22.5:
-        return "Utara"
-    elif 22.5 <= derajat < 67.5:
-        return "Timur Laut"
-    elif 67.5 <= derajat < 112.5:
-        return "Timur"
-    elif 112.5 <= derajat < 157.5:
-        return "Tenggara"
-    elif 157.5 <= derajat < 202.5:
-        return "Selatan"
-    elif 202.5 <= derajat < 247.5:
-        return "Barat Daya"
-    elif 247.5 <= derajat < 292.5:
-        return "Barat"
-    elif 292.5 <= derajat < 337.5:
-        return "Barat Laut"
-    else:
-        return "Tidak Terdefinisi"
+    if 337.5 <= derajat <= 360 or 0 <= derajat < 22.5: return "Utara"
+    elif 22.5 <= derajat < 67.5: return "Timur Laut"
+    elif 67.5 <= derajat < 112.5: return "Timur"
+    elif 112.5 <= derajat < 157.5: return "Tenggara"
+    elif 157.5 <= derajat < 202.5: return "Selatan"
+    elif 202.5 <= derajat < 247.5: return "Barat Daya"
+    elif 247.5 <= derajat < 292.5: return "Barat"
+    elif 292.5 <= derajat < 337.5: return "Barat Laut"
+    else: return "Tidak Terdefinisi"
 
 # ===================================================================
 # BAGIAN 3: BLOK EKSEKUSI UTAMA
@@ -125,7 +113,6 @@ def jalankan_program():
         key = list(data_terbaru_dict.keys())[0]
         data_mentah = data_terbaru_dict[key]
         
-        # ... (Logika pemrosesan data tidak diubah) ...
         suhu_data = data_mentah.get('suhu', {})
         angin_data = data_mentah.get('angin', {})
         hujan_data = data_mentah.get('hujan', {})
@@ -146,9 +133,6 @@ def jalankan_program():
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
         klasifikasi_cuaca_hasil = get_klasifikasi_cuaca(prediksi_numerik, data_input_model)
-        
-        ## --- PENYESUAIAN (DIKEMBALIKAN) ---
-        # Memanggil fungsi konversi arah angin
         arah_angin_teks = konversi_derajat_ke_arah_angin(prediksi_numerik['DDD_X'])
         
         timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
@@ -161,21 +145,25 @@ def jalankan_program():
                 'RH_AVG_Persen': float(round(prediksi_numerik['RH_AVG'], 2)),
                 'FF_AVG_kmh': float(round(kecepatan_angin_kmh_prediksi, 2)),
                 'DDD_X_Derajat': int(prediksi_numerik['DDD_X']),
-                'Arah_Angin_Teks': arah_angin_teks # <-- Arah angin teks ditambahkan lagi
+                'Arah_Angin_Teks': arah_angin_teks
             },
             'Rekomendasi_Penyiraman': {
                 'Rekomendasi': rekomendasi_siram,
                 'Detail_Skor': detail_skor,
             }
         }
-        db.reference(f'/Log_Hasil/{timestamp_key}').set(data_untuk_disimpan)
+        
+        # --- PENYESUAIAN PATH PENYIMPANAN ---
+        path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman/{timestamp_key}'
+        db.reference(path_baru).set(data_untuk_disimpan)
         
         print("\n--- HASIL PREDIKSI & REKOMENDASI ---")
         print(f"Klasifikasi Cuaca      : {klasifikasi_cuaca_hasil}")
-        # Menampilkan arah angin teks secara eksplisit di console
         print(f"Arah Angin Prediksi    : {arah_angin_teks} ({prediksi_numerik['DDD_X']}°)")
         print(f"Rekomendasi Penyiraman : {rekomendasi_siram} ({detail_skor})")
-        print(f"\n✅ Data berhasil diproses dan disimpan ke Firebase dengan kunci: {timestamp_key}")
+        
+        # --- PENYESUAIAN PESAN OUTPUT ---
+        print(f"\n✅ Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
 
     except Exception as e:
         print(f"\n❌ Terjadi error pada proses utama: {e}")
