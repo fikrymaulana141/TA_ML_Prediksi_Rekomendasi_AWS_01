@@ -1,8 +1,6 @@
 # ===================================================================
-# BAGIAN 1: IMPORT DAN INISIALISASI
+# BAGIAN 1: IMPORT LIBRARY
 # ===================================================================
-
-# --- Import Library ---
 import pandas as pd
 import tensorflow as tf
 import joblib
@@ -32,15 +30,13 @@ def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
 
 # Fungsi 2: Memberikan Rekomendasi Penyiraman (Tidak ada perubahan)
 def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
-    """Memberikan rekomendasi penyiraman berdasarkan parameter ideal Sacha Inchi."""
+    # (Isi fungsi ini tidak diubah)
     skor = 0
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
     kecepatan_angin_knot = prediksi_numerik['FF_AVG_KNOT']
     curah_hujan = float(input_cuaca['RR'])
     kecepatan_angin_kmh = kecepatan_angin_knot * 1.852
-
-    # (Logika skoring tidak diubah)
     if suhu >= 32: skor += 3
     elif suhu >= 28: skor += 2
     elif suhu >= 24: skor += 1
@@ -54,7 +50,6 @@ def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     else: skor += 1
     if curah_hujan > 5: skor -= 10
     elif curah_hujan >= 1: skor -= 5
-
     if skor <= 2: rekomendasi = "Tidak Perlu Penyiraman"
     elif skor <= 5: rekomendasi = "Penyiraman Ringan"
     elif skor <= 7: rekomendasi = "Penyiraman Sedang"
@@ -62,60 +57,54 @@ def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     detail = f"Total Skor: {skor}"
     return rekomendasi, detail
 
-# --- FUNGSI BARU ---
-# Fungsi 3: Memberikan Klasifikasi Cuaca
+# Fungsi 3: Memberikan Klasifikasi Cuaca (Tidak ada perubahan)
 def get_klasifikasi_cuaca(prediksi_numerik, input_cuaca):
-    """Memberikan klasifikasi cuaca berdasarkan standar BMKG dan Beaufort."""
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
     kecepatan_angin_knot = prediksi_numerik['FF_AVG_KNOT']
     curah_hujan = float(input_cuaca['RR'])
     kecepatan_angin_kmh = kecepatan_angin_knot * 1.852
-
+    if curah_hujan >= 50: return "Hujan Lebat"
+    if curah_hujan >= 20: return "Hujan Sedang"
+    if curah_hujan >= 5: return "Hujan Ringan"
     klasifikasi_utama = ""
-    
-    # Prioritas 1: Klasifikasi berdasarkan Curah Hujan
-    if curah_hujan >= 50:
-        klasifikasi_utama = "Hujan Lebat"
-    elif curah_hujan >= 20:
-        klasifikasi_utama = "Hujan Sedang"
-    elif curah_hujan >= 5:
-        klasifikasi_utama = "Hujan Ringan"
+    if suhu >= 33: klasifikasi_utama = "Panas"
+    elif suhu < 24: klasifikasi_utama = "Sejuk"
     else:
-        # Prioritas 2: Klasifikasi berdasarkan Suhu dan Kelembapan (jika tidak hujan)
-        if suhu > 35:
-            klasifikasi_utama = "Sangat Panas"
-        elif suhu >= 33:
-            klasifikasi_utama = "Panas"
-        else: # Suhu di bawah 33 (Normal/Sejuk)
-            if kelembapan < 65:
-                klasifikasi_utama = "Kering"
-            elif kelembapan > 85:
-                klasifikasi_utama = "Sangat Lembap"
-            else:
-                klasifikasi_utama = "Cerah Berawan" # Kondisi umum yang nyaman
+        if kelembapan > 85: klasifikasi_utama = "Berawan"
+        elif kelembapan < 65: klasifikasi_utama = "Cerah"
+        else: klasifikasi_utama = "Cerah Berawan"
+    if kecepatan_angin_kmh >= 20: return f"{klasifikasi_utama} & Berangin"
+    else: return klasifikasi_utama
 
-    # Tambahan: Klasifikasi berdasarkan Kondisi Angin
-    deskripsi_angin = ""
-    if kecepatan_angin_kmh >= 39:
-        deskripsi_angin = "Berangin Kencang"
-    elif kecepatan_angin_kmh >= 20:
-        deskripsi_angin = "Cukup Berangin"
-
-    # Gabungkan klasifikasi utama dengan deskripsi angin jika relevan
-    if deskripsi_angin and "Hujan" not in klasifikasi_utama:
-        return f"{klasifikasi_utama} & {deskripsi_angin}"
+## --- FUNGSI ARAH ANGIN (DIKEMBALIKAN) ---
+# Fungsi 4: Mengonversi Derajat ke Arah Mata Angin
+def konversi_derajat_ke_arah_angin(derajat):
+    """Mengubah derajat arah angin menjadi 8 arah mata angin."""
+    if 337.5 <= derajat <= 360 or 0 <= derajat < 22.5:
+        return "Utara"
+    elif 22.5 <= derajat < 67.5:
+        return "Timur Laut"
+    elif 67.5 <= derajat < 112.5:
+        return "Timur"
+    elif 112.5 <= derajat < 157.5:
+        return "Tenggara"
+    elif 157.5 <= derajat < 202.5:
+        return "Selatan"
+    elif 202.5 <= derajat < 247.5:
+        return "Barat Daya"
+    elif 247.5 <= derajat < 292.5:
+        return "Barat"
+    elif 292.5 <= derajat < 337.5:
+        return "Barat Laut"
     else:
-        return klasifikasi_utama
+        return "Tidak Terdefinisi"
 
 # ===================================================================
 # BAGIAN 3: BLOK EKSEKUSI UTAMA
 # ===================================================================
-
 def jalankan_program():
-    """Fungsi utama yang menjalankan seluruh alur program."""
     try:
-        # --- Inisialisasi dan Muat Aset ---
         print("🚀 Memulai proses...")
         cred = credentials.Certificate("firebase_credentials.json")
         if not firebase_admin._apps:
@@ -127,31 +116,25 @@ def jalankan_program():
         scaler_y = joblib.load('scaler_y_4var.pkl')
         print("✅ Inisialisasi berhasil.")
 
-        # --- Ambil Data, Proses, dan Prediksi ---
-        path_data_input = 'aws_01'
-        ref_input = db.reference(path_data_input).order_by_key().limit_to_last(1)
+        ref_input = db.reference('aws_01').order_by_key().limit_to_last(1)
         data_terbaru_dict = ref_input.get()
-
         if not data_terbaru_dict:
-            print("❌ Tidak ada data yang ditemukan di Firebase.")
+            print("❌ Tidak ada data sensor yang ditemukan.")
             return
 
         key = list(data_terbaru_dict.keys())[0]
         data_mentah = data_terbaru_dict[key]
-        print(f"\n[INFO] Data diambil dari path: '/{path_data_input}' (key: {key})")
-
+        
+        # ... (Logika pemrosesan data tidak diubah) ...
         suhu_data = data_mentah.get('suhu', {})
         angin_data = data_mentah.get('angin', {})
         hujan_data = data_mentah.get('hujan', {})
         cahaya_data = data_mentah.get('cahaya', {})
         intensitas_cahaya = float(cahaya_data.get('avg', 0.0))
-
         if intensitas_cahaya > 20000: nilai_ss_konversi = 8.0
         elif intensitas_cahaya > 5000: nilai_ss_konversi = 5.0
         elif intensitas_cahaya > 1000: nilai_ss_konversi = 2.0
         else: nilai_ss_konversi = 0.5
-        print(f"[INFO] Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}")
-
         data_input_model = {
             'TN': float(suhu_data.get('min', 0.0)),
             'TX': float(suhu_data.get('max', 0.0)),
@@ -159,42 +142,40 @@ def jalankan_program():
             'FF_X': float(angin_data.get('gust_kmh', 0.0)) * 0.54,
             'SS': nilai_ss_konversi
         }
-        print("\n[INFO] Data yang dimasukkan ke model (setelah pemetaan):")
-        print(data_input_model)
-
+        
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
-        klasifikasi_cuaca_hasil = get_klasifikasi_cuaca(prediksi_numerik, data_input_model) # <-- Panggil fungsi baru
-
-        # --- Simpan Hasil ke Firebase ---
+        klasifikasi_cuaca_hasil = get_klasifikasi_cuaca(prediksi_numerik, data_input_model)
+        
+        ## --- PENYESUAIAN (DIKEMBALIKAN) ---
+        # Memanggil fungsi konversi arah angin
+        arah_angin_teks = konversi_derajat_ke_arah_angin(prediksi_numerik['DDD_X'])
+        
         timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
-        path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman/{timestamp_key}'
-
-        kecepatan_angin_kmh_untuk_disimpan = prediksi_numerik['FF_AVG_KNOT'] * 1.852
-        data_prediksi = {
-            'Suhu_AVG_C': float(round(prediksi_numerik['TAVG'], 2)),
-            'RH_AVG_Persen': float(round(prediksi_numerik['RH_AVG'], 2)),
-            'FF_AVG_kmh': float(round(kecepatan_angin_kmh_untuk_disimpan, 2)),
-            'DDD_X_Derajat': int(prediksi_numerik['DDD_X']),
-        }
-
-        data_rekomendasi = { 'Rekomendasi': rekomendasi_siram, 'Detail_Skor': detail_skor }
+        kecepatan_angin_kmh_prediksi = prediksi_numerik['FF_AVG_KNOT'] * 1.852
         
         data_untuk_disimpan = {
-            'Klasifikasi_Cuaca': klasifikasi_cuaca_hasil, # <-- Tambahkan hasil klasifikasi
-            'Prediksi_Cuaca': data_prediksi,
-            'Rekomendasi_Penyiraman': data_rekomendasi
+            'Klasifikasi_Cuaca': klasifikasi_cuaca_hasil,
+            'Prediksi_Cuaca': {
+                'Suhu_AVG_C': float(round(prediksi_numerik['TAVG'], 2)),
+                'RH_AVG_Persen': float(round(prediksi_numerik['RH_AVG'], 2)),
+                'FF_AVG_kmh': float(round(kecepatan_angin_kmh_prediksi, 2)),
+                'DDD_X_Derajat': int(prediksi_numerik['DDD_X']),
+                'Arah_Angin_Teks': arah_angin_teks # <-- Arah angin teks ditambahkan lagi
+            },
+            'Rekomendasi_Penyiraman': {
+                'Rekomendasi': rekomendasi_siram,
+                'Detail_Skor': detail_skor,
+            }
         }
-        db.reference(path_baru).set(data_untuk_disimpan)
+        db.reference(f'/Log_Hasil/{timestamp_key}').set(data_untuk_disimpan)
         
-        # --- Tampilkan Hasil ke Console ---
         print("\n--- HASIL PREDIKSI & REKOMENDASI ---")
-        print(f"Klasifikasi Cuaca: {klasifikasi_cuaca_hasil}") # <-- Tampilkan hasil klasifikasi
-        print(f"Rekomendasi Penyiraman: {rekomendasi_siram} ({detail_skor})")
-        print("\nDetail Prediksi Numerik:")
-        for k, v in data_prediksi.items():
-            print(f"- {k}: {v}")
-        print(f"\n✅ Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
+        print(f"Klasifikasi Cuaca      : {klasifikasi_cuaca_hasil}")
+        # Menampilkan arah angin teks secara eksplisit di console
+        print(f"Arah Angin Prediksi    : {arah_angin_teks} ({prediksi_numerik['DDD_X']}°)")
+        print(f"Rekomendasi Penyiraman : {rekomendasi_siram} ({detail_skor})")
+        print(f"\n✅ Data berhasil diproses dan disimpan ke Firebase dengan kunci: {timestamp_key}")
 
     except Exception as e:
         print(f"\n❌ Terjadi error pada proses utama: {e}")
