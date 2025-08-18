@@ -93,7 +93,7 @@ def konversi_derajat_ke_arah_angin(derajat):
 # ===================================================================
 def jalankan_program():
     try:
-        print("🚀 Memulai proses...")
+        # Menghapus print pembuka agar output bersih
         cred = credentials.Certificate("firebase_credentials.json")
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
@@ -102,15 +102,15 @@ def jalankan_program():
         model = tf.keras.models.load_model('model_h20_p50.h5')
         scaler_X = joblib.load('scaler_X_4var.pkl')
         scaler_y = joblib.load('scaler_y_4var.pkl')
-        print("✅ Inisialisasi berhasil.")
-
+        
         ref_input = db.reference('aws_01').order_by_key().limit_to_last(1)
         data_terbaru_dict = ref_input.get()
         if not data_terbaru_dict:
-            print("❌ Tidak ada data sensor yang ditemukan.")
+            print("Tidak ada data sensor yang ditemukan.")
             return
 
         key = list(data_terbaru_dict.keys())[0]
+        print(f"[INFO] Data diambil dari path: '/aws_01' (key: {key})") # Tambahan
         data_mentah = data_terbaru_dict[key]
         
         suhu_data = data_mentah.get('suhu', {})
@@ -118,10 +118,14 @@ def jalankan_program():
         hujan_data = data_mentah.get('hujan', {})
         cahaya_data = data_mentah.get('cahaya', {})
         intensitas_cahaya = float(cahaya_data.get('avg', 0.0))
+        
         if intensitas_cahaya > 20000: nilai_ss_konversi = 8.0
         elif intensitas_cahaya > 5000: nilai_ss_konversi = 5.0
         elif intensitas_cahaya > 1000: nilai_ss_konversi = 2.0
         else: nilai_ss_konversi = 0.5
+        
+        print(f"[INFO] Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}") # Tambahan
+        
         data_input_model = {
             'TN': float(suhu_data.get('min', 0.0)),
             'TX': float(suhu_data.get('max', 0.0)),
@@ -130,11 +134,27 @@ def jalankan_program():
             'SS': nilai_ss_konversi
         }
         
+        print("\n[INFO] Data yang dimasukkan ke model (setelah pemetaan):") # Tambahan
+        print(f"{data_input_model}") # Tambahan
+        
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
         klasifikasi_cuaca_hasil = get_klasifikasi_cuaca(prediksi_numerik, data_input_model)
         arah_angin_teks = konversi_derajat_ke_arah_angin(prediksi_numerik['DDD_X'])
         
+        # --- BLOK OUTPUT BARU SESUAI GAMBAR ---
+        kecepatan_angin_kmh_unrounded = prediksi_numerik['FF_AVG_KNOT'] * 1.852
+        
+        print("\n--- HASIL PREDIKSI CUACA ---")
+        print(f"- Suhu_AVG_C: {prediksi_numerik['TAVG']}")
+        print(f"- RH_AVG_Persen: {prediksi_numerik['RH_AVG']}")
+        print(f"- FF_AVG_kmh: {kecepatan_angin_kmh_unrounded}")
+        print(f"- DDD_X_Derajat: {prediksi_numerik['DDD_X']} ({arah_angin_teks})") # Arah angin ditambahkan di sini
+        
+        print("\n--- REKOMENDASI PENYIRAMAN ---")
+        print(f"Rekomendasi: {rekomendasi_siram} ({detail_skor})")
+        # --- AKHIR BLOK OUTPUT BARU ---
+
         timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
         kecepatan_angin_kmh_prediksi = prediksi_numerik['FF_AVG_KNOT'] * 1.852
         
@@ -153,20 +173,13 @@ def jalankan_program():
             }
         }
         
-        # --- PENYESUAIAN PATH PENYIMPANAN ---
         path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman/{timestamp_key}'
         db.reference(path_baru).set(data_untuk_disimpan)
         
-        print("\n--- HASIL PREDIKSI & REKOMENDASI ---")
-        print(f"Klasifikasi Cuaca      : {klasifikasi_cuaca_hasil}")
-        print(f"Arah Angin Prediksi    : {arah_angin_teks} ({prediksi_numerik['DDD_X']}°)")
-        print(f"Rekomendasi Penyiraman : {rekomendasi_siram} ({detail_skor})")
-        
-        # --- PENYESUAIAN PESAN OUTPUT ---
-        print(f"\n✅ Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
+        print(f"Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
 
     except Exception as e:
-        print(f"\n❌ Terjadi error pada proses utama: {e}")
+        print(f"Terjadi error pada proses utama: {e}")
 
 # ===================================================================
 # BAGIAN 4: TITIK MASUK PROGRAM
@@ -174,4 +187,4 @@ def jalankan_program():
 
 if __name__ == "__main__":
     jalankan_program()
-    print("\n🏁 Program selesai.")
+    # Menghapus print penutup agar output bersih
