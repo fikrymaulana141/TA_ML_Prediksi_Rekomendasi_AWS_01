@@ -93,7 +93,7 @@ def konversi_derajat_ke_arah_angin(derajat):
 # ===================================================================
 def jalankan_program():
     try:
-        print("Memulai proses...")
+        print("🚀 Memulai proses...")
         cred = credentials.Certificate("firebase_credentials.json")
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
@@ -102,12 +102,12 @@ def jalankan_program():
         model = tf.keras.models.load_model('model_h20_p50.h5')
         scaler_X = joblib.load('scaler_X_4var.pkl')
         scaler_y = joblib.load('scaler_y_4var.pkl')
-        print("Inisialisasi berhasil.")
+        print("✅ Inisialisasi berhasil.")
 
         ref_input = db.reference('aws_01').order_by_key().limit_to_last(1)
         data_terbaru_dict = ref_input.get()
         if not data_terbaru_dict:
-            print("Tidak ada data sensor yang ditemukan.")
+            print("❌ Tidak ada data sensor yang ditemukan.")
             return
 
         key = list(data_terbaru_dict.keys())[0]
@@ -163,10 +163,10 @@ def jalankan_program():
         print(f"Rekomendasi Penyiraman : {rekomendasi_siram} ({detail_skor})")
         
         # --- PENYESUAIAN PESAN OUTPUT ---
-        print(f"Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
+        print(f"\n✅ Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
 
     except Exception as e:
-        print(f"Terjadi error pada proses utama: {e}")
+        print(f"\n❌ Terjadi error pada proses utama: {e}")
 
 # ===================================================================
 # BAGIAN 4: TITIK MASUK PROGRAM
@@ -174,4 +174,4 @@ def jalankan_program():
 
 if __name__ == "__main__":
     jalankan_program()
-    print("Program selesai.")
+    print("\n🏁 Program selesai.")
