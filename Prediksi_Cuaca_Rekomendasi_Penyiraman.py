@@ -124,7 +124,7 @@ def jalankan_program():
         elif intensitas_cahaya > 1000: nilai_ss_konversi = 2.0
         else: nilai_ss_konversi = 0.5
         
-        print(f"[INFO] Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}") # Tambahan
+        print(f"Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}") # Tambahan
         
         data_input_model = {
             'TN': float(suhu_data.get('min', 0.0)),
@@ -134,7 +134,7 @@ def jalankan_program():
             'SS': nilai_ss_konversi
         }
         
-        print("\n[INFO] Data yang dimasukkan ke model (setelah pemetaan):") # Tambahan
+        print("Data yang dimasukkan ke model (setelah pemetaan):") # Tambahan
         print(f"{data_input_model}") # Tambahan
         
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
