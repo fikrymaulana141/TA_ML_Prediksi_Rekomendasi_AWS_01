@@ -146,10 +146,11 @@ def jalankan_program():
         kecepatan_angin_kmh_unrounded = prediksi_numerik['FF_AVG_KNOT'] * 1.852
         
         print("\n--- HASIL PREDIKSI CUACA ---")
+        print(f"- Klasifikasi Cuaca: {klasifikasi_cuaca_hasil}")
         print(f"- Suhu_AVG_C: {prediksi_numerik['TAVG']}")
         print(f"- RH_AVG_Persen: {prediksi_numerik['RH_AVG']}")
         print(f"- FF_AVG_kmh: {kecepatan_angin_kmh_unrounded}")
-        print(f"- DDD_X_Derajat: {prediksi_numerik['DDD_X']} ({arah_angin_teks})") # Arah angin ditambahkan di sini
+        print(f"- DDD_X_Derajat: {prediksi_numerik['DDD_X']} ({arah_angin_teks})")
         
         print("\n--- REKOMENDASI PENYIRAMAN ---")
         print(f"Rekomendasi: {rekomendasi_siram} ({detail_skor})")
