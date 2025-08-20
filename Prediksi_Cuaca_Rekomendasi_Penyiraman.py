@@ -30,29 +30,39 @@ def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
 
 def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     """Memberikan rekomendasi penyiraman berdasarkan parameter ideal Sacha Inchi."""
+    # Perhitungan Skor Tetap Sama
     skor = 0
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
     kecepatan_angin_knot = prediksi_numerik['FF_AVG_KNOT']
     curah_hujan = float(input_cuaca['RR'])
     kecepatan_angin_kmh = kecepatan_angin_knot * 1.852
+    
     if suhu >= 32: skor += 3
     elif suhu >= 28: skor += 2
     elif suhu >= 24: skor += 1
     else: skor += 0
+    
     if kelembapan < 60: skor += 3
     elif kelembapan < 70: skor += 2
     elif kelembapan <= 85: skor += 1
     else: skor += 0
+        
     if kecepatan_angin_kmh > 20: skor += 3
     elif kecepatan_angin_kmh >= 10: skor += 2
     else: skor += 1
+        
     if curah_hujan > 5: skor -= 10
     elif curah_hujan >= 1: skor -= 5
-    if skor <= 2: rekomendasi = "Tidak Perlu Penyiraman"
-    elif skor <= 5: rekomendasi = "Penyiraman Ringan"
-    elif skor <= 7: rekomendasi = "Penyiraman Sedang"
-    else: rekomendasi = "Penyiraman Intensif"
+    
+    # --- PENYESUAIAN PEMETAAN SKOR KE REKOMENDASI BARU ---
+    if skor <= 2: 
+        rekomendasi = "Tidak Menguntungkan"
+    elif skor <= 4: 
+        rekomendasi = "Sedang"
+    else: # skor > 4
+        rekomendasi = "Optimal"
+        
     detail = f"Total Skor: {skor}"
     return rekomendasi, detail
 
