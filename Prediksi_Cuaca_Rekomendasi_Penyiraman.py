@@ -30,38 +30,33 @@ def prediksi_cuaca(data_realtime, model, scaler_X, scaler_y):
 
 def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     """Memberikan rekomendasi penyiraman berdasarkan parameter ideal Sacha Inchi."""
-    # Perhitungan Skor Tetap Sama
     skor = 0
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
     kecepatan_angin_knot = prediksi_numerik['FF_AVG_KNOT']
     curah_hujan = float(input_cuaca['RR'])
     kecepatan_angin_kmh = kecepatan_angin_knot * 1.852
-    
     if suhu >= 32: skor += 3
     elif suhu >= 28: skor += 2
     elif suhu >= 24: skor += 1
     else: skor += 0
-    
     if kelembapan < 60: skor += 3
     elif kelembapan < 70: skor += 2
     elif kelembapan <= 85: skor += 1
     else: skor += 0
-        
     if kecepatan_angin_kmh > 20: skor += 3
     elif kecepatan_angin_kmh >= 10: skor += 2
     else: skor += 1
-        
     if curah_hujan > 5: skor -= 10
     elif curah_hujan >= 1: skor -= 5
     
-    # --- PENYESUAIAN PEMETAAN SKOR KE REKOMENDASI BARU ---
-    if skor <= 2: 
-        rekomendasi = "Tidak Menguntungkan"
-    elif skor <= 4: 
-        rekomendasi = "Sedang"
-    else: # skor > 4
+    # === LOGIKA REKOMENDASI BARU ===
+    if skor > 4:
         rekomendasi = "Optimal"
+    elif skor > 2:  # Artinya skor adalah 3 atau 4
+        rekomendasi = "Sedang"
+    else:  # Artinya skor adalah 2, 1, 0, atau lebih rendah
+        rekomendasi = "Tidak Menguntungkan"
         
     detail = f"Total Skor: {skor}"
     return rekomendasi, detail
@@ -109,9 +104,9 @@ def jalankan_program():
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://tugas-akhir-64cd9-default-rtdb.asia-southeast1.firebasedatabase.app/'
             })
-        model = tf.keras.models.load_model('model_h20_p50.h5')
-        scaler_X = joblib.load('scaler_X_4var.pkl')
-        scaler_y = joblib.load('scaler_y_4var.pkl')
+        model = tf.keras.models.load_model('model_predict_weather_h30_n40_.h5')
+        scaler_X = joblib.load('scaler_X_predict_weather_.pkl')
+        scaler_y = joblib.load('scaler_y_predict_weather_.pkl')
         
         ref_input = db.reference('aws_01').order_by_key().limit_to_last(1)
         data_terbaru_dict = ref_input.get()
@@ -120,7 +115,7 @@ def jalankan_program():
             return
 
         key = list(data_terbaru_dict.keys())[0]
-        print(f"[INFO] Data diambil dari path: '/aws_01' (key: {key})") # Tambahan
+        print(f"[INFO] Data diambil dari path: '/aws_01' (key: {key})")
         data_mentah = data_terbaru_dict[key]
         
         suhu_data = data_mentah.get('suhu', {})
@@ -134,7 +129,8 @@ def jalankan_program():
         elif intensitas_cahaya > 1000: nilai_ss_konversi = 2.0
         else: nilai_ss_konversi = 0.5
         
-        print(f"Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}") # Tambahan
+        # [PRINT YANG DIMINTA] Kode ini sudah ada di skrip Anda
+        print(f"Intensitas cahaya: {intensitas_cahaya}, dikonversi menjadi nilai SS: {nilai_ss_konversi}")
         
         data_input_model = {
             'TN': float(suhu_data.get('min', 0.0)),
@@ -144,15 +140,14 @@ def jalankan_program():
             'SS': nilai_ss_konversi
         }
         
-        print("Data yang dimasukkan ke model (setelah pemetaan):") # Tambahan
-        print(f"{data_input_model}") # Tambahan
+        print("Data yang dimasukkan ke model (setelah pemetaan):")
+        print(f"{data_input_model}")
         
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
         klasifikasi_cuaca_hasil = get_klasifikasi_cuaca(prediksi_numerik, data_input_model)
         arah_angin_teks = konversi_derajat_ke_arah_angin(prediksi_numerik['DDD_X'])
         
-        # --- BLOK OUTPUT BARU SESUAI GAMBAR ---
         kecepatan_angin_kmh_unrounded = prediksi_numerik['FF_AVG_KNOT'] * 1.852
         
         print("\n--- HASIL PREDIKSI CUACA ---")
@@ -162,9 +157,9 @@ def jalankan_program():
         print(f"- FF_AVG_kmh: {kecepatan_angin_kmh_unrounded}")
         print(f"- DDD_X_Derajat: {prediksi_numerik['DDD_X']} ({arah_angin_teks})")
         
-        print("\n--- REKOMENDASI PENYIRAMAN ---")
+        print("\n--- REKOMENDASI KONDISI TANAM ---")
+        # [PRINT YANG DIMINTA] Kode ini menampilkan skor yang diminta
         print(f"Rekomendasi: {rekomendasi_siram} ({detail_skor})")
-        # --- AKHIR BLOK OUTPUT BARU ---
 
         timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
         kecepatan_angin_kmh_prediksi = prediksi_numerik['FF_AVG_KNOT'] * 1.852
@@ -184,10 +179,10 @@ def jalankan_program():
             }
         }
         
-        path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman/{timestamp_key}'
+        path_baru = f'/Hasil_Prediksi_Rekomendasi_Penyiraman_AWS_01/{timestamp_key}'
         db.reference(path_baru).set(data_untuk_disimpan)
         
-        print(f"Data berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
+        print(f"\nData berhasil diproses dan disimpan ke Firebase di path: {path_baru}")
 
     except Exception as e:
         print(f"Terjadi error pada proses utama: {e}")
@@ -198,4 +193,3 @@ def jalankan_program():
 
 if __name__ == "__main__":
     jalankan_program()
-    # Menghapus print penutup agar output bersih
