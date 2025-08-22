@@ -104,7 +104,7 @@ def jalankan_program():
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://tugas-akhir-64cd9-default-rtdb.asia-southeast1.firebasedatabase.app/'
             })
-        model = tf.keras.models.load_model('model_predict_weather_h30_n40_.h5')
+        model = tf.keras.models.load_model('model_predict_weather_h20_n10_.h5')
         scaler_X = joblib.load('scaler_X_predict_weather_.pkl')
         scaler_y = joblib.load('scaler_y_predict_weather_.pkl')
         
