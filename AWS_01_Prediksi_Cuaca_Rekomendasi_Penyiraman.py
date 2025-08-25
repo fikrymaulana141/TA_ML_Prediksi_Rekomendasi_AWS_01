@@ -6,7 +6,7 @@ import tensorflow as tf
 import joblib
 import firebase_admin
 from firebase_admin import credentials, db
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 # ===================================================================
@@ -171,11 +171,6 @@ def jalankan_program():
         # Jalankan prediksi dan analisis
         prediksi_numerik = prediksi_cuaca(data_input_model, model, scaler_X, scaler_y)
         rekomendasi_siram, detail_skor = get_rekomendasi_penyiraman(prediksi_numerik, data_input_model)
-        
-        # ===============================================================
-        # >> BARIS INI YANG DIPERBAIKI <<
-        # Menambahkan argumen `intensitas_cahaya` yang sebelumnya hilang
-        # ===============================================================
         klasifikasi_cuaca_hasil = get_klasifikasi_cuaca(prediksi_numerik, data_input_model, intensitas_cahaya)
         
         arah_angin_teks = konversi_derajat_ke_arah_angin(prediksi_numerik['DDD_X'])
@@ -192,8 +187,31 @@ def jalankan_program():
         print("\n--- REKOMENDASI KONDISI TANAH ---")
         print(f"Rekomendasi: {rekomendasi_siram} ({detail_skor})")
 
-        # Siapkan data untuk disimpan ke Firebase
-        timestamp_key = datetime.now(ZoneInfo("Asia/Jakarta")).strftime('%Y-%m-%d_%H-%M-%S')
+        # ==============================================================================
+        # >> BLOK KODE YANG DIMODIFIKASI <<
+        # Logika untuk menentukan timestamp jadwal prediksi berikutnya
+        # ==============================================================================
+        waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
+        jadwal_prediksi_jam = [0, 3, 6, 9, 12, 15, 18, 21]
+        target_jam = None
+
+        # Cari jadwal terdekat SETELAH jam saat ini
+        for jam in jadwal_prediksi_jam:
+            if jam > waktu_sekarang.hour:
+                target_jam = jam
+                break
+
+        waktu_target = waktu_sekarang
+        # Jika tidak ditemukan (misal, eksekusi jam 22:00), maka targetnya adalah jam 00:00 hari berikutnya
+        if target_jam is None:
+            target_jam = jadwal_prediksi_jam[0]
+            waktu_target += timedelta(days=1)
+
+        # Buat objek waktu yang presisi sesuai jadwal (menit dan detik di-nol-kan)
+        waktu_prediksi_final = waktu_target.replace(hour=target_jam, minute=0, second=0, microsecond=0)
+        timestamp_key = waktu_prediksi_final.strftime('%Y-%m-%d_%H-%M-%S')
+        # ==============================================================================
+        
         kecepatan_angin_kmh_prediksi = prediksi_numerik['FF_AVG_KNOT'] * 1.852
         
         data_untuk_disimpan = {
