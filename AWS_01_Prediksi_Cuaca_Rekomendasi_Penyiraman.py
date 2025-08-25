@@ -61,25 +61,46 @@ def get_rekomendasi_penyiraman(prediksi_numerik, input_cuaca):
     detail = f"Total Skor: {skor}"
     return rekomendasi, detail
 
-def get_klasifikasi_cuaca(prediksi_numerik, input_cuaca):
-    """Memberikan klasifikasi cuaca berdasarkan prioritas: Hujan > Suhu/Kelembapan + Angin."""
+def get_klasifikasi_cuaca(prediksi_numerik, input_cuaca, intensitas_cahaya):
+    # Mengambil nilai-nilai yang dibutuhkan
     suhu = prediksi_numerik['TAVG']
     kelembapan = prediksi_numerik['RH_AVG']
-    kecepatan_angin_knot = prediksi_numerik['FF_AVG_KNOT']
-    curah_hujan = float(input_cuaca['RR'])
-    kecepatan_angin_kmh = kecepatan_angin_knot * 1.852
-    if curah_hujan >= 50: return "Hujan Lebat"
-    if curah_hujan >= 20: return "Hujan Sedang"
-    if curah_hujan >= 5: return "Hujan Ringan"
-    klasifikasi_utama = ""
-    if suhu >= 33: klasifikasi_utama = "Panas"
-    elif suhu < 24: klasifikasi_utama = "Sejuk"
+    kecepatan_angin_kmh = prediksi_numerik['FF_AVG_KNOT'] * 1.852
+    curah_hujan_input = float(input_cuaca['RR'])
+    # 1. Prioritas utama: Cek apakah sedang hujan (berdasarkan data input)
+    if curah_hujan_input > 10.0:
+        return "Hujan Lebat"
+    elif curah_hujan_input > 2.5:
+        return "Hujan Sedang"
+    elif curah_hujan_input > 0.1:
+        return "Hujan Ringan"
+    # 2. Jika tidak hujan, cek kondisi angin
+    kecepatan_meter_per_detik = kecepatan_angin_kmh / 3.6
+    if kecepatan_meter_per_detik > 10:
+        return "Berangin"
+    # 3. Cek kondisi suhu ekstrem (Panas/Sejuk)
+    if suhu > 34.0:
+        return "Panas"
+    elif suhu < 22.0:
+        return "Sejuk"
+    # 4. Cek apakah sekarang malam hari (berdasarkan waktu eksekusi skrip)
+    # Zona waktu WIB (Asia/Jakarta)
+    waktu_sekarang = datetime.now(ZoneInfo("Asia/Jakarta"))
+    jam_sekarang = waktu_sekarang.hour
+    # Malam hari dianggap dari jam 18:00 sore hingga 05:59 pagi
+    if jam_sekarang >= 18 or jam_sekarang < 6:
+        # Logika malam hari: gunakan kelembapan untuk klasifikasi
+        if kelembapan > 85.0:
+            return "Berawan (Malam)"
+        else:
+            return "Cerah (Malam)"
+    # 5. Jika SIANG HARI dan tidak ekstrem, gunakan intensitas cahaya
+    if intensitas_cahaya > 40000:
+        return "Cerah"
+    elif intensitas_cahaya > 10000:
+        return "Cerah Berawan"
     else:
-        if kelembapan > 85: klasifikasi_utama = "Berawan"
-        elif kelembapan < 65: klasifikasi_utama = "Cerah"
-        else: klasifikasi_utama = "Cerah Berawan"
-    if kecepatan_angin_kmh >= 20: return f"{klasifikasi_utama} & Berangin"
-    else: return klasifikasi_utama
+        return "Berawan"
 
 def konversi_derajat_ke_arah_angin(derajat):
     """Mengubah derajat arah angin menjadi 8 arah mata angin."""
