@@ -3,7 +3,7 @@ name: Prediksi Cuaca dan Rekomendasi Penyiraman
 on:
   # --- PERUBAHAN DI BARIS INI ---
   schedule:
-    - cron: '30 22,1,4,7,10,13,16,19 * * *'
+    - cron: '30 21,0,3,6,9,12,15,18 * * *'
   
   # Mengizinkan Anda menjalankan workflow secara manual dari tab Actions
   workflow_dispatch:
