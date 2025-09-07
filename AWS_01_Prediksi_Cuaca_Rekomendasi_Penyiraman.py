@@ -183,8 +183,8 @@ def jalankan_program():
         print(f"- FF_AVG_kmh: {kecepatan_angin_kmh_unrounded}")
         print(f"- DDD_X_Derajat: {prediksi_numerik['DDD_X']} ({arah_angin_teks})")
         
-        print("\n--- REKOMENDASI KONDISI TANAH ---")
-        print(f"Rekomendasi: {rekomendasi_siram} ({detail_skor})")
+        print("\n--- KONDISI TANAH ---")
+        print(f"Rekomendasi Penyiraman: {rekomendasi_siram} ({detail_skor})")
 
         # Menentukan waktu prediksi berikutnya untuk penyimpanan di Firebase
 
