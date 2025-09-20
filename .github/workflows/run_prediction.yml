@@ -35,4 +35,4 @@ jobs:
 
     # 5. Menjalankan skrip utama Python Anda
     - name: Run prediction script
-      run: python AWS_01_Prediksi_Cuaca_Rekomendasi_Penyiraman.py
+      run: python Prediksi_Cuaca_Firebase.py
